@@ -33,7 +33,6 @@ import { AssetCard, UploadCard } from './AssetCard';
 import { AssetCarousel } from './AssetCarousel';
 import { AssetDropZone, type ZoneVariant } from './AssetDropZone';
 import { AssetRow, UploadRow } from './AssetRow';
-import { NoLibraryAccessDialog } from './NoLibraryAccessDialog';
 import { useFieldUploads, type FieldUpload } from './useFieldUploads';
 
 import type { File } from '../../../../shared/contracts/files';
@@ -52,7 +51,7 @@ const CONTENT_MANAGER_LOCATION = 'content-manager';
  */
 const UPLOAD_FOLDER_ID = null;
 
-type Step = 'browse' | 'create-folder' | 'no-access';
+type Step = 'browse' | 'create-folder';
 
 export interface MediaLibraryInputProps {
   name: string;
@@ -107,7 +106,7 @@ export const MediaLibraryInput = ({
   const [uploadFromUrls] = useUploadFromUrlsMutation();
   // Echoes the app config; a missing payload (still loading) falls back to
   // sequential rather than outpacing what the server asked for.
-  const { canRead, canCreate, canUpdate, canCopyLink, canDownload } = useMediaLibraryPermissions();
+  const { canRead, canUpdate, canCopyLink, canDownload } = useMediaLibraryPermissions();
   const { data: settings } = useGetUploadSettingsQuery(undefined, { skip: !canRead });
   const concurrency = settings?.data?.concurrentUploadRequests ?? 1;
   const isAiMetadataEnabled = useAIMetadataEnabled();
@@ -301,17 +300,6 @@ export const MediaLibraryInput = ({
 
   const handleRetry = (upload: FieldUpload) => retry(upload, (file) => startUpload([file]));
 
-  // Without read access the library browser has nothing to show.
-  const handleZoneClick = () => {
-    if (canRead) {
-      setStep('browse');
-    } else if (canCreate) {
-      fileInputRef.current?.click();
-    } else {
-      setStep('no-access');
-    }
-  };
-
   /**
    * The server fetches each URL and uploads what it finds, so the file's type
    * is not known here — `allowedTypes` can only be enforced on what comes back.
@@ -381,12 +369,7 @@ export const MediaLibraryInput = ({
 
   const renderValue = () => {
     const dropZone = (variant: ZoneVariant) => (
-      <AssetDropZone
-        variant={variant}
-        disabled={disabled}
-        onClick={handleZoneClick}
-        onDropFiles={handleUpload}
-      />
+      <AssetDropZone variant={variant} disabled={disabled} onDropFiles={handleUpload} />
     );
 
     if (assets.length === 0 && uploads.length === 0) {
@@ -512,7 +495,6 @@ export const MediaLibraryInput = ({
         <EditFolderDialog open onClose={() => setStep('browse')} parentFolderId={folderId} />
       )}
 
-      {step === 'no-access' && <NoLibraryAccessDialog onClose={() => setStep(undefined)} />}
 
       <ImportFromUrlDialog
         open={isUrlDialogOpen}
